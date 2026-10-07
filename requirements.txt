@@ -1,0 +1,2 @@
+pikepdf>=10.16,<11
+streamlit>=1.50,<2
