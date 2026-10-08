@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PDF Half Splitter</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>PDF Half Splitter</h1>
+    <p>Split landscape spreads vertically while preserving PDF text and vector content.</p>
+    <form id="split-form">
+      <label for="pdf">Choose a PDF (up to 50 MiB)</label>
+      <input id="pdf" name="file" type="file" accept="application/pdf,.pdf" required>
+      <label class="checkbox"><input id="landscape" type="checkbox" checked> Split only landscape pages</label>
+      <label for="order">Page order</label>
+      <select id="order" name="order">
+        <option value="left-right">Left → Right</option>
+        <option value="right-left">Right → Left</option>
+      </select>
+      <button id="split" type="submit">Split PDF</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <a id="download" hidden>Download split PDF</a>
+    <p class="note">Test the result in Acrobat to verify layers and links for your PDFs.</p>
+  </main>
+</body>
+</html>

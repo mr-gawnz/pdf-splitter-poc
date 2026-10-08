@@ -1,51 +1,70 @@
-import streamlit as st
+from pathlib import Path
+from typing import Annotated, Literal
+from urllib.parse import quote
+
+import pikepdf
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from splitter import split_pdf_bytes
 
-st.set_page_config(page_title="PDF Half Splitter POC", page_icon="✂️", layout="centered")
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
-st.title("PDF Half Splitter POC")
-st.write(
-    "Splits landscape spreads vertically without rendering them to images. "
-    "The POC changes PDF page boxes so vectors, text, links and optional-content "
-    "layers have the best chance of remaining intact."
-)
+app = FastAPI(title="PDF Half Splitter", version="1.0.0")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-uploaded = st.file_uploader("Choose a PDF", type=["pdf"])
 
-col1, col2 = st.columns(2)
-with col1:
-    only_landscape = st.checkbox("Split only landscape pages", value=True)
-with col2:
-    order_label = st.selectbox("Page order", ["Left → Right", "Right → Left"])
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
 
-if uploaded is not None:
-    st.caption(f"Input: {uploaded.name} - {uploaded.size / 1024:.1f} KB")
 
-    if st.button("Split PDF", type="primary", use_container_width=True):
-        try:
-            result, stats = split_pdf_bytes(
-                uploaded.getvalue(),
-                only_landscape=only_landscape,
-                order="left-right" if order_label == "Left → Right" else "right-left",
-            )
-        except Exception as exc:
-            st.error(f"Could not split the PDF: {exc}")
-        else:
-            base = uploaded.name.rsplit(".", 1)[0]
-            output_name = f"{base}_split.pdf"
-            st.success(
-                f"Done. {stats.split_pages} page(s) split; "
-                f"{stats.untouched_pages} page(s) left unchanged."
-            )
-            st.download_button(
-                "Download split PDF",
-                data=result,
-                file_name=output_name,
-                mime="application/pdf",
-                use_container_width=True,
-            )
-            st.info(
-                "POC note: this deliberately avoids flattening or rendering. "
-                "Please test the result in Acrobat with the Layers panel and link tool."
-            )
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post("/api/split", response_class=Response, responses={
+    200: {"content": {"application/pdf": {}}},
+    400: {"description": "Empty or password-protected PDF"},
+    413: {"description": "PDF exceeds 50 MiB"},
+    422: {"description": "Invalid PDF or form options"},
+})
+def split_pdf(
+    file: Annotated[UploadFile, File(description="PDF to split")],
+    only_landscape: Annotated[bool, Form()] = True,
+    order: Annotated[Literal["left-right", "right-left"], Form()] = "left-right",
+) -> Response:
+    # A synchronous endpoint runs in FastAPI's thread pool, keeping PDF work
+    # and file reads off the event loop. Do not trust the client MIME type.
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if not data:
+        raise HTTPException(status_code=400, detail="Choose a non-empty PDF.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="PDF must be 50 MiB or smaller.")
+
+    try:
+        result, stats = split_pdf_bytes(data, only_landscape=only_landscape, order=order)
+    except pikepdf.PasswordError as exc:
+        raise HTTPException(status_code=400, detail="Password-protected PDFs are not supported.") from exc
+    except pikepdf.PdfError as exc:
+        raise HTTPException(status_code=422, detail="Could not read this PDF. Check that it is a valid PDF.") from exc
+
+    # Strip paths and control characters before constructing the download header.
+    name = (file.filename or "document.pdf").replace("\\", "/").rsplit("/", 1)[-1]
+    base = name.rsplit(".", 1)[0] if "." in name else name
+    base = "".join(c for c in base if c.isprintable()).strip()[:150] or "document"
+    filename = quote(f"{base}_split.pdf", safe="")
+    return Response(
+        content=result,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename=\"document_split.pdf\"; filename*=UTF-8''{filename}",
+            "X-Input-Pages": str(stats.input_pages),
+            "X-Split-Pages": str(stats.split_pages),
+            "X-Untouched-Pages": str(stats.untouched_pages),
+            "Cache-Control": "no-store",
+        },
+    )

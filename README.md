@@ -1,6 +1,6 @@
 # PDF Half Splitter POC
 
-A small local Streamlit app that splits a landscape PDF spread vertically while avoiding rasterization.
+A FastAPI web app and API that split landscape PDF spreads vertically without rasterization. The UI is plain HTML, CSS and JavaScript, so you can customize it independently of the PDF logic.
 
 ## Why this approach
 
@@ -16,30 +16,81 @@ It does **not** render the page to an image and rebuild it. This gives us a much
 
 This is intentionally a POC. The first thing to validate with real iPaper/customer PDFs is whether links, OCG layers and unusual page rotations behave correctly in Adobe Acrobat and the iPaper import pipeline.
 
-## Run on Windows
+## Develop locally (Python 3.11+)
 
-1. Install Python 3.11 or newer.
-2. Open PowerShell in this folder.
-3. Create a virtual environment:
-
-```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
 
-4. Install dependencies:
+Open `http://127.0.0.1:8000` for the UI, or `/docs` for the interactive API documentation. On Windows, create the environment with `py -m venv .venv` and activate it with `.venv\Scripts\Activate.ps1`.
 
-```powershell
-pip install -r requirements.txt
+- `app.py`: FastAPI routes, upload validation and PDF downloads.
+- `splitter.py`: existing PDF logic.
+- `static/index.html`, `static/styles.css`, `static/app.js`: customizable UI; no frontend build required.
+
+Run the checks:
+
+```bash
+python smoke_test.py
+python -m unittest -v test_api
 ```
 
-5. Start the app:
+ReportLab and HTTPX are test dependencies in `requirements-dev.txt`; production only needs `requirements.txt`.
 
-```powershell
-streamlit run app.py
+## API
+
+`POST /api/split` accepts multipart form fields:
+
+| Field | Default | Description |
+| --- | --- | --- |
+| `file` | Required | PDF file, up to 50 MiB |
+| `only_landscape` | `true` | Set `false` to split every page |
+| `order` | `left-right` | `left-right` or `right-left` |
+
+Success returns PDF bytes with an attachment filename and `X-Input-Pages`, `X-Split-Pages` and `X-Untouched-Pages` headers. Empty or password-protected PDFs return HTTP 400, oversized uploads return 413, and malformed PDFs or invalid form options return 422. Files are processed for the response and are not saved by application code; multipart uploads may use temporary files managed by the framework.
+
+```bash
+curl --fail-with-body -X POST http://127.0.0.1:8000/api/split \
+  -F 'file=@spread.pdf' \
+  -F 'only_landscape=true' \
+  -F 'order=left-right' \
+  --output spread_split.pdf
 ```
 
-Your browser should open automatically.
+`GET /health` returns `{"status":"ok"}`.
+
+## Ubuntu / DigitalOcean deployment
+
+These instructions assume the repository is checked out at `/opt/pdf-splitter-poc`, and use Nginx in front of a loopback-only Uvicorn service. Deploy the code there as your normal deployment user, with read and directory traversal access for `www-data`.
+
+```bash
+sudo apt update
+sudo apt install -y python3-venv nginx
+cd /opt/pdf-splitter-poc
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+sudo -u www-data .venv/bin/python -c 'from app import app; print(app.title)'
+sudo cp deploy/pdf-splitter.service /etc/systemd/system/pdf-splitter.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now pdf-splitter
+curl --fail http://127.0.0.1:8000/health
+```
+
+Replace `YOUR_DOMAIN` in `deploy/nginx.conf` with your domain (or server IP), then install and validate it:
+
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/pdf-splitter
+sudo ln -s /etc/nginx/sites-available/pdf-splitter /etc/nginx/sites-enabled/pdf-splitter
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Allow HTTP/HTTPS through your DigitalOcean firewall and enable HTTPS for your domain, for example with Certbot's Nginx integration. Port 8000 stays private. Use `journalctl -u pdf-splitter -e` for application logs. After updating the code or dependencies, run `sudo systemctl restart pdf-splitter`.
+
+The application has no authentication. Add access control at Nginx if you want a private tool. The 50 MiB limit constrains input size, not PDF complexity or output size; size the server for your PDFs before exposing it to heavy traffic. Nginx limits the request body to 52 MiB including multipart overhead. Real PDF compatibility checks below remain necessary.
 
 ## Recommended first test
 
