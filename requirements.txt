@@ -1,4 +1,4 @@
-pikepdf>=10.16,<11
+pikepdf>=10.13,<11
 fastapi>=0.115,<1
 uvicorn>=0.30,<1
 python-multipart>=0.0.18,<1

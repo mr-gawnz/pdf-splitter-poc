@@ -16,11 +16,12 @@ It does **not** render the page to an image and rebuild it. This gives us a much
 
 This is intentionally a POC. The first thing to validate with real iPaper/customer PDFs is whether links, OCG layers and unusual page rotations behave correctly in Adobe Acrobat and the iPaper import pipeline.
 
-## Develop locally (Python 3.11+)
+## Develop locally (Python 3.10+)
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -37,6 +38,8 @@ Run the checks:
 python smoke_test.py
 python -m unittest -v test_api
 ```
+
+The app is tested with Python 3.10 and 3.12. The PikePDF requirement allows 10.13, which supports Python 3.10; newer PikePDF releases may require Python 3.11+. Pip selects a compatible release.
 
 ReportLab and HTTPX are test dependencies in `requirements-dev.txt`; production only needs `requirements.txt`.
 
@@ -71,6 +74,7 @@ sudo apt update
 sudo apt install -y python3-venv nginx
 cd /opt/pdf-splitter-poc
 python3 -m venv .venv
+.venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
 sudo -u www-data .venv/bin/python -c 'from app import app; print(app.title)'
 sudo cp deploy/pdf-splitter.service /etc/systemd/system/pdf-splitter.service
