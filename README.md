@@ -49,7 +49,7 @@ ReportLab and HTTPX are test dependencies in `requirements-dev.txt`; production 
 
 | Field | Default | Description |
 | --- | --- | --- |
-| `file` | Required | PDF file, up to 50 MiB |
+| `file` | Required | PDF file, up to 200 MiB |
 | `only_landscape` | `true` | Set `false` to split every page |
 | `order` | `left-right` | `left-right` or `right-left` |
 
@@ -130,7 +130,7 @@ git pull --ff-only origin main
 sudo systemctl restart pdf-splitter
 ```
 
-The app has no authentication. Apply your existing Apache access controls to `/splitter/` if this is a private tool. Apache caps uploads at 52 MiB including multipart overhead; the application caps the PDF itself at 50 MiB. PDF complexity and output size can still affect resource use. Real PDF compatibility checks below remain necessary.
+The app has no authentication. Apply your existing Apache access controls to `/splitter/` if this is a private tool. Apache caps uploads at 202 MiB including multipart overhead; the application caps the PDF itself at 200 MiB. PDF complexity and output size can still affect resource use. Real PDF compatibility checks below remain necessary.
 
 ## Recommended first test
 

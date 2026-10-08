@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from splitter import split_pdf_bytes
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-MAX_UPLOAD_BYTES = 50 * 1024 * 1024
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024
 
 app = FastAPI(title="PDF Half Splitter", version="1.0.0")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -29,7 +29,7 @@ def health() -> dict[str, str]:
 @app.post("/api/split", response_class=Response, responses={
     200: {"content": {"application/pdf": {}}},
     400: {"description": "Empty or password-protected PDF"},
-    413: {"description": "PDF exceeds 50 MiB"},
+    413: {"description": "PDF exceeds 200 MiB"},
     422: {"description": "Invalid PDF or form options"},
 })
 def split_pdf(
@@ -43,7 +43,7 @@ def split_pdf(
     if not data:
         raise HTTPException(status_code=400, detail="Choose a non-empty PDF.")
     if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="PDF must be 50 MiB or smaller.")
+        raise HTTPException(status_code=413, detail="PDF must be 200 MiB or smaller.")
 
     try:
         result, stats = split_pdf_bytes(data, only_landscape=only_landscape, order=order)

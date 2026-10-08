@@ -13,8 +13,8 @@ form.addEventListener('submit', async (event) => {
   }
   const file = document.querySelector('#pdf').files[0];
   if (!file) return;
-  if (file.size > 50 * 1024 * 1024) {
-    status.textContent = 'PDF must be 50 MiB or smaller.';
+  if (file.size > 200 * 1024 * 1024) {
+    status.textContent = 'PDF must be 200 MiB or smaller.';
     return;
   }
   const data = new FormData(form);
