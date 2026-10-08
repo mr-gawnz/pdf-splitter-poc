@@ -1,4 +1,6 @@
+from html.parser import HTMLParser
 from io import BytesIO
+from urllib.parse import urljoin
 import unittest
 from unittest.mock import patch
 
@@ -25,6 +27,43 @@ class ApiTests(unittest.TestCase):
         self.assertIn('id="split-form"', self.client.get('/').text)
         for path in ('/static/app.js', '/static/styles.css'):
             self.assertEqual(self.client.get(path).status_code, 200)
+
+    def test_subpath_ui_assets_api_and_docs(self):
+        client = TestClient(app, root_path='/splitter', base_url='https://middleware.ipaperdemo.io')
+        response = client.get('/splitter/')
+        self.assertEqual(response.status_code, 200)
+
+        class AssetParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.urls = []
+
+            def handle_starttag(self, tag, attrs):
+                attributes = dict(attrs)
+                if tag == 'link':
+                    self.urls.append(attributes['href'])
+                elif tag == 'script':
+                    self.urls.append(attributes['src'])
+
+        parser = AssetParser()
+        parser.feed(response.text)
+        self.assertEqual(len(parser.urls), 2)
+        for asset in parser.urls:
+            url = urljoin(str(response.url), asset)
+            self.assertIn('/splitter/static/', url)
+            self.assertEqual(client.get(url).status_code, 200)
+
+        script = client.get('/splitter/static/app.js').text
+        self.assertIn("fetch('api/split'", script)
+        api_url = urljoin(str(response.url), 'api/split')
+        result = client.post(api_url, files={'file': ('spread.pdf', make_test_pdf(), 'application/pdf')})
+        self.assertEqual(result.status_code, 200)
+        with pikepdf.Pdf.open(BytesIO(result.content)) as pdf:
+            self.assertEqual(len(pdf.pages), 2)
+        self.assertEqual(client.get('/splitter/health').json(), {'status': 'ok'})
+        self.assertIn('/splitter/openapi.json', client.get('/splitter/docs').text)
+        schema = client.get('/splitter/openapi.json').json()
+        self.assertIn({'url': '/splitter'}, schema['servers'])
 
     def test_default_split_and_download(self):
         response = self.upload()

@@ -65,36 +65,72 @@ curl --fail-with-body -X POST http://127.0.0.1:8000/api/split \
 
 `GET /health` returns `{"status":"ok"}`.
 
-## Ubuntu / DigitalOcean deployment
+## Apache / DigitalOcean deployment
 
-These instructions assume the repository is checked out at `/opt/pdf-splitter-poc`, and use Nginx in front of a loopback-only Uvicorn service. Deploy the code there as your normal deployment user, with read and directory traversal access for `www-data`.
+The production URL is **https://middleware.ipaperdemo.io/splitter/**. Apache redirects `/splitter` to `/splitter/` so relative UI URLs resolve correctly. Uvicorn runs privately on `127.0.0.1:8001` under systemd, which starts it on boot and restarts it if it exits. The existing middleware and HTTPS virtual host stay in place.
+
+The service file assumes this checkout lives at `/var/www/html/splitter`. Python 3.10+ and `python3-venv` are required. From the droplet:
 
 ```bash
-sudo apt update
-sudo apt install -y python3-venv nginx
-cd /opt/pdf-splitter-poc
+cd /var/www/html/splitter
+git pull --ff-only origin main
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements.txt
 sudo -u www-data .venv/bin/python -c 'from app import app; print(app.title)'
 sudo cp deploy/pdf-splitter.service /etc/systemd/system/pdf-splitter.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now pdf-splitter
-curl --fail http://127.0.0.1:8000/health
+sudo systemctl enable pdf-splitter
+sudo systemctl restart pdf-splitter
+sudo systemctl status pdf-splitter --no-pager
+curl --fail http://127.0.0.1:8001/health
 ```
 
-Replace `YOUR_DOMAIN` in `deploy/nginx.conf` with your domain (or server IP), then install and validate it:
+Ensure `www-data` can read the project and virtual environment and traverse their parent directories. If port 8001 is already used, choose a free port in both the systemd service and Apache proxy configuration. The service uses `--root-path /splitter`, keeping API docs and generated URLs under the public prefix. The UI uses relative URLs and also works at `/` during local development.
+
+Enable the required Apache modules and install the proxy snippet:
 
 ```bash
-sudo cp deploy/nginx.conf /etc/nginx/sites-available/pdf-splitter
-sudo ln -s /etc/nginx/sites-available/pdf-splitter /etc/nginx/sites-enabled/pdf-splitter
-sudo nginx -t
-sudo systemctl reload nginx
+sudo a2enmod proxy proxy_http headers alias
+sudo cp deploy/apache-splitter.conf /etc/apache2/splitter-proxy.conf
+sudo apache2ctl -S
 ```
 
-Allow HTTP/HTTPS through your DigitalOcean firewall and enable HTTPS for your domain, for example with Certbot's Nginx integration. Port 8000 stays private. Use `journalctl -u pdf-splitter -e` for application logs. After updating the code or dependencies, run `sudo systemctl restart pdf-splitter`.
+Use the last command to identify the **existing HTTPS virtual host for middleware.ipaperdemo.io**. Add this line **inside its `<VirtualHost ...:443>` block**, before any catch-all proxy rules:
 
-The application has no authentication. Add access control at Nginx if you want a private tool. The 50 MiB limit constrains input size, not PDF complexity or output size; size the server for your PDFs before exposing it to heavy traffic. Nginx limits the request body to 52 MiB including multipart overhead. Real PDF compatibility checks below remain necessary.
+```apache
+Include /etc/apache2/splitter-proxy.conf
+```
+
+The snippet is intended for that HTTPS virtual host, not a global `a2enconf` include. It proxies only `/splitter/` and denies direct filesystem access to the checkout, including `.git` and `.venv`. Do not add a second virtual host or replace the existing middleware configuration.
+
+Validate and reload Apache:
+
+```bash
+sudo apache2ctl configtest
+sudo systemctl reload apache2
+curl --fail https://middleware.ipaperdemo.io/splitter/health
+```
+
+The health response should be `{"status":"ok"}`. Open the public URL and upload a PDF to check the entire workflow. Interactive API docs are at `/splitter/docs`. Apache owns the HTTPS certificate; port 8001 does not need public firewall access.
+
+For logs:
+
+```bash
+sudo journalctl -u pdf-splitter -n 100 --no-pager
+sudo tail -n 100 /var/log/apache2/error.log
+```
+
+After future code updates:
+
+```bash
+cd /var/www/html/splitter
+git pull --ff-only origin main
+.venv/bin/python -m pip install -r requirements.txt
+sudo systemctl restart pdf-splitter
+```
+
+The app has no authentication. Apply your existing Apache access controls to `/splitter/` if this is a private tool. Apache caps uploads at 52 MiB including multipart overhead; the application caps the PDF itself at 50 MiB. PDF complexity and output size can still affect resource use. Real PDF compatibility checks below remain necessary.
 
 ## Recommended first test
 

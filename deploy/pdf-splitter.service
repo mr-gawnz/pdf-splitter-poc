@@ -6,10 +6,10 @@ After=network.target
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/opt/pdf-splitter-poc
+WorkingDirectory=/var/www/html/splitter
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/opt/pdf-splitter-poc/.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips=127.0.0.1
-Restart=on-failure
+ExecStart=/var/www/html/splitter/.venv/bin/python -m uvicorn app:app --host 127.0.0.1 --port 8001 --root-path /splitter --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=always
 RestartSec=5
 NoNewPrivileges=true
 PrivateTmp=true

@@ -22,7 +22,7 @@ form.addEventListener('submit', async (event) => {
   button.disabled = true;
   status.textContent = 'Splitting PDF…';
   try {
-    const response = await fetch('/api/split', { method: 'POST', body: data });
+    const response = await fetch('api/split', { method: 'POST', body: data });
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(typeof error.detail === 'string' ? error.detail : 'Could not split this PDF. Check the file and options.');
