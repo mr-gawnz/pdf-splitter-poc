@@ -7,7 +7,6 @@ const dropZone = document.querySelector('#drop-zone');
 const selectedFile = document.querySelector('#selected-file');
 const result = document.querySelector('#result');
 const buttonLabel = document.querySelector('#button-label');
-const actionHint = document.querySelector('.action-hint');
 let downloadUrl;
 let processing = false;
 let dragDepth = 0;
@@ -37,7 +36,6 @@ function updateFile() {
   const file = input.files[0];
   selectedFile.hidden = !file;
   button.disabled = true;
-  actionHint.textContent = 'Choose a PDF to get started.';
   if (!file) return;
   document.querySelector('#file-name').textContent = file.name;
   document.querySelector('#file-size').textContent = `${formatSize(file.size)} · PDF document`;
@@ -49,7 +47,6 @@ function updateFile() {
     setStatus('PDF must be 200 MiB or smaller.', 'error');
   } else {
     button.disabled = false;
-    actionHint.textContent = 'Ready when you are.';
   }
 }
 
@@ -93,7 +90,6 @@ function setProcessing(active) {
   buttonLabel.textContent = active ? 'Splitting your PDF…' : 'Split my PDF';
   document.querySelector('#button-icon').hidden = active;
   document.querySelector('#spinner').hidden = !active;
-  actionHint.textContent = active ? 'Larger files may take a little longer.' : 'Ready when you are.';
 }
 
 form.addEventListener('submit', async (event) => {
@@ -131,3 +127,15 @@ form.addEventListener('submit', async (event) => {
 });
 
 window.addEventListener('pagehide', () => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); });
+
+// Keep the header readable if the hosted brand asset is unavailable.
+const brandLogo = document.querySelector('.brand-logo');
+const brandFallback = document.querySelector('.brand-logo-fallback');
+function updateBrandLogo() {
+  const unavailable = brandLogo.complete && brandLogo.naturalWidth === 0;
+  brandLogo.hidden = unavailable;
+  brandFallback.hidden = !unavailable;
+}
+brandLogo.addEventListener('load', updateBrandLogo);
+brandLogo.addEventListener('error', updateBrandLogo);
+if (brandLogo.complete) updateBrandLogo();
