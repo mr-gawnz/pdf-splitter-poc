@@ -127,15 +127,3 @@ form.addEventListener('submit', async (event) => {
 });
 
 window.addEventListener('pagehide', () => { if (downloadUrl) URL.revokeObjectURL(downloadUrl); });
-
-// Keep the header readable if the hosted brand asset is unavailable.
-const brandLogo = document.querySelector('.brand-logo');
-const brandFallback = document.querySelector('.brand-logo-fallback');
-function updateBrandLogo() {
-  const unavailable = brandLogo.complete && brandLogo.naturalWidth === 0;
-  brandLogo.hidden = unavailable;
-  brandFallback.hidden = !unavailable;
-}
-brandLogo.addEventListener('load', updateBrandLogo);
-brandLogo.addEventListener('error', updateBrandLogo);
-if (brandLogo.complete) updateBrandLogo();
