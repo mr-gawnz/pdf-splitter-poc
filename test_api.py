@@ -25,7 +25,7 @@ class ApiTests(unittest.TestCase):
     def test_health_and_ui(self):
         self.assertEqual(self.client.get('/health').json(), {'status': 'ok'})
         self.assertIn('id="split-form"', self.client.get('/').text)
-        for path in ('/static/app.js', '/static/styles.css'):
+        for path in ('/static/app.js', '/static/styles.css', '/static/watermelon.css'):
             self.assertEqual(self.client.get(path).status_code, 200)
 
     def test_subpath_ui_assets_api_and_docs(self):
@@ -47,7 +47,7 @@ class ApiTests(unittest.TestCase):
 
         parser = AssetParser()
         parser.feed(response.text)
-        self.assertEqual(len(parser.urls), 2)
+        self.assertEqual(len(parser.urls), 3)
         for asset in parser.urls:
             url = urljoin(str(response.url), asset)
             self.assertIn('/splitter/static/', url)

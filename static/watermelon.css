@@ -1,0 +1,57 @@
+/* Adapted from Watermelon UI's file-upload-1, Card and Button components.
+   Source and MIT license: ../THIRD_PARTY_NOTICES.md */
+:root {
+  --card: #fff;
+  --card-foreground: #091722;
+  --secondary: #f7f7f8;
+  --border: #e4e6e8;
+  --ring: #09172240;
+  --radius: 10px;
+}
+.hero { padding-bottom: 36px; }
+.illustration { background: var(--secondary); border-radius: calc(var(--radius) + 4px); box-shadow: 0 1px 2px #09172205; }
+.workspace { gap: 24px; border: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: visible; }
+.upload-panel, .options-panel { min-width: 0; padding: 24px; background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: calc(var(--radius) + 4px); box-shadow: 0 1px 2px #0917220f, 0 2px 4px #0917220a; }
+.section-heading { align-items: flex-start; gap: 12px; margin-bottom: 24px; }
+.section-heading h2 { font-size: 16px; line-height: 1.4; font-weight: 600; }
+.section-heading p { font-size: 12px; line-height: 1.5; }
+.step { padding: 5px 7px; border-radius: 6px; background: var(--secondary); line-height: 1.5; font-variant-numeric: tabular-nums; }
+.drop-zone { border: 2px dashed var(--border); border-radius: calc(var(--radius) + 2px); background: var(--secondary); transition: background .2s, border-color .2s; }
+.drop-zone:hover { background: #f0f1f2; border-color: #b6bbbf; }
+.drop-zone.drag-over { border-color: var(--accent); background: #fff5f6; }
+.drop-zone:focus-within { outline-color: var(--ring); }
+.drop-label { min-height: 228px; gap: 12px; padding: 28px 16px; text-align: center; }
+.drop-label strong { font-size: 14px; font-weight: 600; }
+.upload-icon { width: 44px; height: 44px; margin-bottom: 2px; border: 1px solid var(--border); border-radius: calc(var(--radius) + 2px); background: white; color: #59636b; box-shadow: 0 1px 2px #0917220a; }
+.upload-icon svg { width: 20px; height: 20px; }
+.browse-text { display: inline-flex; align-items: center; justify-content: center; min-height: 34px; padding: 6px 14px; color: var(--ink); background: white; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 500; text-decoration: none; box-shadow: 0 1px 2px #0917220a; }
+.drop-label small { margin-top: 0; font-size: 11px; }
+.selected-file { gap: 12px; padding: 12px; background: var(--secondary); border-radius: 8px; }
+.file-icon { width: 32px; height: 36px; border: 1px solid var(--border); border-radius: 6px; }
+.file-details strong { font-weight: 500; }
+.file-details span { font-size: 11px; font-variant-numeric: tabular-nums; }
+.icon-button { display: grid; place-items: center; }
+.order-fieldset { margin-bottom: 24px; }
+.order-options { gap: 12px; }
+.order-option { padding: 16px 8px; border-radius: 8px; background: white; }
+.order-option:has(input:checked) { background: #fff5f6; box-shadow: 0 0 0 1px var(--accent); }
+.order-visual b { border-radius: 4px; }
+.landscape-option { padding-bottom: 24px; }
+.landscape-option small { line-height: 1.5; }
+.switch { width: 32px; height: 20px; padding: 2px; }
+.switch::after { width: 16px; height: 16px; }
+#landscape:checked + .switch::after { transform: translateX(12px); }
+.primary-button, .download-button { border: 1px solid transparent; border-radius: 8px; min-height: 40px; font-weight: 500; font-size: 13px; transition: background .15s, box-shadow .15s; }
+.primary-button { padding: 10px 14px; box-shadow: 0 1px 2px #09172214; }
+.primary-button:hover:not(:disabled) { transform: none; }
+.primary-button:disabled { background: var(--secondary); color: #757b80; box-shadow: none; border-color: var(--border); }
+.processing .primary-button:disabled { background: var(--ink); color: white; border-color: transparent; }
+.result { padding: 20px; gap: 16px; border-radius: calc(var(--radius) + 4px); background: var(--secondary); }
+.result-icon { border: 1px solid var(--border); border-radius: 10px; }
+.result h2 { font-weight: 600; }
+.status:not(:empty) { border-radius: 8px; }
+a:focus-visible, button:focus-visible, .order-option:focus-within, #landscape:focus-visible + .switch { outline: 3px solid var(--ring); outline-offset: 3px; }
+@media (max-width: 850px) { .workspace { gap: 16px; } .upload-panel, .options-panel { padding: 20px; } }
+@media (max-width: 680px) { .workspace { gap: 20px; } .upload-panel, .options-panel { padding: 24px; } .hero { padding-bottom: 26px; } .download-button { margin-top: 0; } }
+@media (max-width: 380px) { .upload-panel, .options-panel { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
