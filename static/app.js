@@ -12,7 +12,7 @@ let processing = false;
 let dragDepth = 0;
 
 function formatSize(bytes) {
-  return bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MiB` : `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / 1_000_000).toFixed(2)} MB`;
 }
 
 function setStatus(message, state = '') {
@@ -43,8 +43,8 @@ function updateFile() {
     setStatus('Please choose a PDF file.', 'error');
   } else if (!file.size) {
     setStatus('This file is empty. Please choose another PDF.', 'error');
-  } else if (file.size > 200 * 1024 * 1024) {
-    setStatus('PDF must be 200 MiB or smaller.', 'error');
+  } else if (file.size > 200 * 1_000_000) {
+    setStatus('PDF must be 200 MB or smaller.', 'error');
   } else {
     button.disabled = false;
   }
@@ -117,6 +117,7 @@ form.addEventListener('submit', async (event) => {
     result.hidden = false;
     download.hidden = false;
     setStatus('Your PDF is ready to download.', 'success');
+    download.click();
     download.focus({ preventScroll: true });
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'nearest' });
   } catch (error) {
